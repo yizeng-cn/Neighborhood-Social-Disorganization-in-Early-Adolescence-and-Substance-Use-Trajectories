@@ -1,0 +1,121 @@
+DATA: FILE IS imp_expo_full_4list.dat;
+TYPE = IMPUTATION;
+VARIABLE: NAMES ARE idno
+                    c1toba c1alco c1canna
+                    c2toba c2alco c2canna
+                    c3toba c3alco c3canna
+                    c4toba c4alco c4canna
+                    c5toba c5alco c5canna
+                    p1toba_hi p1alco_hi p1addic p1eaefc
+                    g1ageyrc g2ageyrc g3ageyrc g4ageyrc g5ageyrc
+                    g1sex p1ethni2 p1divor p1ses p1genint p1genext T2EDU
+                    g1frag g1depri g1VEILIG g2frag g2depri
+                    g1pc4 g2pc4 g3pc4 g4pc4 g5pc4
+                    g1urban_m g2urban_m
+                    g3frag_m g3depri_m g3VEILIG_m g3urban_m
+                    g4frag_m g4depri_m g4VEILIG_m g4urban_m
+                    g5frag_m g5depri_m g5VEILIG_m g5urban_m
+                    c_alco c_toba c_canna_li c_canna_qu
+                    g2VEILIG_m_update
+                    c_toba_li_infla c_toba_qu_infla
+                    c_canna_li_infla c_canna_qu_infla
+                    inter_g1fragefc inter_g1depriefc inter_g1VEIefc
+                    inter_g1fragp1toba inter_g1deprip1toba inter_g1VEIp1toba
+                    inter_g1fragp1alco inter_g1deprip1alco inter_g1VEIp1alco
+                    inter_g1fragp1addic inter_g1deprip1addic inter_g1VEIp1addic;
+
+      USEVARIABLE = c_alco g1sex p1ethni2 p1ses p1divor p1genint p1genext
+                    p1alco_hi p1eaefc
+                    g1frag g1depri g1VEILIG
+                    frag_alco depri_alco vei_alco
+                    frag_eae depri_eae vei_eae;
+          NOMINAL = c_alco;
+           WITHIN = g1sex p1ethni2 p1ses p1divor p1genint p1genext
+                    p1alco_hi p1eaefc
+                    frag_alco depri_alco vei_alco
+                    frag_eae depri_eae vei_eae;
+          BETWEEN = g1frag g1depri g1VEILIG;
+          CLASSES = c(4);
+          CLUSTER = g1pc4;
+DEFINE:   !IF(c_alco==1) THEN c_alco_re = 2;
+          !IF(c_alco==2) THEN c_alco_re = 3;
+          !IF(c_alco==3) THEN c_alco_re = 4;
+          !IF(c_alco==4) THEN c_alco_re = 1;
+          CENTER p1ses p1genint p1genext
+                 p1alco_hi p1eaefc
+                 g1frag g1depri g1VEILIG(GRANDMEAN);
+          frag_alco = g1frag*p1alco_hi;
+          depri_alco = g1depri*p1alco_hi;
+          vei_alco = g1VEILIG*p1alco_hi;
+          frag_eae = g1frag*p1eaefc;
+          depri_eae = g1depri*p1eaefc;
+          vei_eae = g1VEILIG*p1eaefc;
+ANALYSIS: TYPE = TWOLEVEL MIXTURE;STARTS = 0;
+          !ALGORITHM = INTEGRATION;
+          !ESTIMATOR = BAYES;
+          PROCESSORS = 8;
+
+MODEL:    %WITHIN%
+          %OVERALL%
+          c#1 on g1sex p1ethni2 p1ses p1divor p1genint p1genext
+                 p1alco_hi
+                 p1eaefc(gamma1)
+                 frag_alco depri_alco vei_alco
+                 frag_eae depri_eae
+                 vei_eae(gamma2);
+          
+          c#2 on g1sex p1ethni2 p1ses p1divor p1genint p1genext
+                 p1alco_hi p1eaefc
+                 frag_alco depri_alco vei_alco
+                 frag_eae depri_eae vei_eae;
+          
+          c#3 on g1sex p1ethni2 p1ses p1divor p1genint p1genext
+                 p1alco_hi p1eaefc
+                 frag_alco depri_alco vei_alco
+                 frag_eae depri_eae vei_eae;
+
+          %BETWEEN%
+          %OVERALL%
+          c#1 on g1frag g1depri
+          g1VEILIG;
+
+          c#2 on g1frag g1depri g1VEILIG;
+
+          c#3 on g1frag g1depri g1VEILIG;
+
+          %c#1%
+          [c_alco#1@1.872];
+          [c_alco#2@-2.158];
+          [c_alco#3@-2.505];
+
+          %c#2%
+          [c_alco#1@1.235];
+          [c_alco#2@4.395];
+          [c_alco#3@-0.085];
+
+          %c#3%
+          [c_alco#1@0.708];
+          [c_alco#2@0.444];
+          [c_alco#3@3.975];
+
+          %c#4%
+          [c_alco#1@-3.359];
+          [c_alco#2@-6.466];
+          [c_alco#3@-5.851];
+
+MODEL CONSTRAINT: 
+          PLOT(INTERAC);
+          !LOOP(p1eaefc,-1.4,1.4,0.1); !the range is 2SD
+          !INTERAC = gamma1+gamma2*p1eaefc;
+          LOOP(g1VEILIG, -45, 45, 5);
+          INTERAC = gamma1+gamma2*g1VEILIG;
+
+          !NEW(VEI_2LO VEI_LO VEI_HI VEI_2HI);
+          !VEI_LO = gamma1+gamma2*(-0.7);
+          !VEI_2LO = gamma1+gamma2*(-1.4);
+          !VEI_HI = gamma1+gamma2*(0.7);
+          !VEI_2HI = gamma1+gamma2*(1.4);
+
+PLOT: TYPE = PLOT2;
+
+OUTPUT: SAMP MOD(4) CINTERVAL PATTERNS TECH11 TECH14;
