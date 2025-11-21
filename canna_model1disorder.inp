@@ -1,0 +1,88 @@
+DATA: FILE IS imp_expo_full_4list.dat;
+TYPE = IMPUTATION;
+VARIABLE: NAMES ARE idno
+                    c1toba c1alco c1canna
+                    c2toba c2alco c2canna
+                    c3toba c3alco c3canna
+                    c4toba c4alco c4canna
+                    c5toba c5alco c5canna
+                    p1toba_hi p1alco_hi p1addic p1eaefc
+                    g1ageyrc g2ageyrc g3ageyrc g4ageyrc g5ageyrc
+                    g1sex p1ethni2 p1divor p1ses p1genint p1genext T2EDU
+                    g1frag g1depri g1VEILIG g2frag g2depri
+                    g1pc4 g2pc4 g3pc4 g4pc4 g5pc4
+                    g1urban_m g2urban_m
+                    g3frag_m g3depri_m g3VEILIG_m g3urban_m
+                    g4frag_m g4depri_m g4VEILIG_m g4urban_m
+                    g5frag_m g5depri_m g5VEILIG_m g5urban_m
+                    c_alco c_toba c_canna_li c_canna_qu
+                    g2VEILIG_m_update
+                    c_toba_li_infla c_toba_qu_infla
+                    c_canna_li_infla c_canna_qu_infla
+                    inter_g1fragefc inter_g1depriefc inter_g1VEIefc
+                    inter_g1fragp1toba inter_g1deprip1toba inter_g1VEIp1toba
+                    inter_g1fragp1alco inter_g1deprip1alco inter_g1VEIp1alco
+                    inter_g1fragp1addic inter_g1deprip1addic inter_g1VEIp1addic;
+
+      USEVARIABLE = c_canna_qu_infla
+                    g1sex p1ethni2 p1ses p1divor p1genint p1genext
+                    p1addic p1eaefc
+                    g1VEILIG;
+          NOMINAL = c_canna_qu_infla;
+           WITHIN = g1sex p1ethni2 p1ses p1divor p1genint p1genext
+                    p1addic p1eaefc;
+          BETWEEN = g1VEILIG;
+          CLASSES = c(5);
+          CLUSTER = g1pc4;
+DEFINE:   !IF(c_alco==1) THEN c_alco_re = 2;
+          !IF(c_alco==2) THEN c_alco_re = 3;
+          !IF(c_alco==3) THEN c_alco_re = 4;
+          !IF(c_alco==4) THEN c_alco_re = 1;
+          CENTER p1ses p1genint p1genext
+                 p1eaefc
+                 g1VEILIG(GRANDMEAN);
+ANALYSIS: TYPE = TWOLEVEL MIXTURE;STARTS = 0;
+          !ALGORITHM = INTEGRATION;
+          !ESTIMATOR = BAYES;
+          PROCESSORS = 8;
+
+MODEL:    %WITHIN%
+          %OVERALL%
+          c on g1sex p1ethni2 p1ses p1divor p1genint p1genext
+               p1addic p1eaefc;
+
+          %BETWEEN%
+          %OVERALL%
+          c on g1VEILIG;
+
+          %c#1%
+          [c_canna_qu_infla#1@7.154];
+          [c_canna_qu_infla#2@6.184];
+          [c_canna_qu_infla#3@2.602];
+          [c_canna_qu_infla#4@3.563];
+
+          %c#2%
+          [c_canna_qu_infla#1@-2.565];
+          [c_canna_qu_infla#2@-1.096];
+          [c_canna_qu_infla#3@-4.620];
+          [c_canna_qu_infla#4@-3.180];
+
+          %c#3%
+          [c_canna_qu_infla#1@0.543];
+          [c_canna_qu_infla#2@2.264];
+          [c_canna_qu_infla#3@3.434];
+          [c_canna_qu_infla#4@-2.360];
+
+          %c#4%
+          [c_canna_qu_infla#1@2.667];
+          [c_canna_qu_infla#2@3.013];
+          [c_canna_qu_infla#3@0.472];
+          [c_canna_qu_infla#4@3.514];
+
+          %c#5%
+          [c_canna_qu_infla#1@9.365];
+          [c_canna_qu_infla#2@13.804];
+          [c_canna_qu_infla#3@0.000];
+          [c_canna_qu_infla#4@5.581];
+
+OUTPUT: SAMP MOD(4) CINTERVAL PATTERNS TECH11 TECH14;
